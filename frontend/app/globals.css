@@ -1,0 +1,83 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: #0a0f1a;
+  --surface: #0f172a;
+  --card: #141b2d;
+  --border: #263149;
+  --border-strong: #334155;
+  --text: #f8fafc;
+  --text-muted: #94a3b8;
+
+  --primary: #0891b2;
+  --primary-glow: #22d3ee;
+  --primary-foreground: #f8fafc;
+
+  --success: #22c55e;
+  --warning: #f59e0b;
+  --destructive: #ef4444;
+
+  /* Fixed segmentation class colors — never change meaning across the app */
+  --tumor-ncr: #f97316; /* necrotic / non-enhancing tumor core */
+  --tumor-ed: #facc15; /* peritumoral edema */
+  --tumor-et: #ef4444; /* enhancing tumor */
+}
+
+* {
+  border-color: var(--border);
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  background-color: var(--bg);
+  color: var(--text);
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+}
+
+::selection {
+  background-color: var(--primary);
+  color: white;
+}
+
+/* Visible, consistent focus ring for keyboard users everywhere */
+:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--primary-glow);
+  border-radius: 6px;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: var(--surface);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 8px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+.mono-numeric {
+  font-family: var(--font-jetbrains-mono), "JetBrains Mono", ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
