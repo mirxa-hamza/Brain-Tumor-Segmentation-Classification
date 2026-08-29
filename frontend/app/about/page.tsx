@@ -1,4 +1,4 @@
-import { Brain, Database, Layers3, ScanEye, Github } from "lucide-react";
+import { Brain, Database, Layers3, ScanEye } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/Card";
 
 export const metadata = { title: "About — NeuroScan AI" };
@@ -91,7 +91,7 @@ export default function AboutPage() {
       </Card>
 
       <div className="flex items-center gap-2 text-xs text-text-muted pt-2">
-        <Github size={14} aria-hidden="true" />
+        
         <span>Runs 100% locally — no data leaves this machine.</span>
       </div>
     </div>

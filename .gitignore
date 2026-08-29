@@ -50,3 +50,4 @@ yarn-error.log*
 CLAUDE.md
 PLAN.md
 .gitignore
+Test Data/*
