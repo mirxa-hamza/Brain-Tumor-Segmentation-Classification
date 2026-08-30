@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
-import { Brain, Menu, X, LayoutDashboard, Upload, LineChart, Info } from "lucide-react";
+import { Brain, Menu, X, LayoutDashboard, Upload, LineChart, Info, ArrowLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const LINKS = [
@@ -15,23 +15,35 @@ const LINKS = [
 
 export function Navbar() {
   const pathname = usePathname();
+  const router = useRouter();
   const [open, setOpen] = useState(false);
 
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-bg/80 backdrop-blur supports-[backdrop-filter]:bg-bg/60">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-        <Link
-          href="/"
-          className="flex items-center gap-2.5 font-semibold text-text"
-          onClick={() => setOpen(false)}
-        >
-          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary ring-1 ring-primary/30">
-            <Brain size={20} strokeWidth={2} aria-hidden="true" />
-          </span>
-          <span className="text-base tracking-tight">
-            NeuroScan <span className="text-primary">AI</span>
-          </span>
-        </Link>
+        <div className="flex items-center gap-4">
+          <button
+            onClick={() => router.back()}
+            className="flex h-9 w-9 items-center justify-center rounded-lg text-text-muted hover:text-text hover:bg-card transition-colors"
+            aria-label="Go back"
+            title="Go back"
+          >
+            <ArrowLeft size={20} />
+          </button>
+          
+          <Link
+            href="/"
+            className="flex items-center gap-2.5 font-semibold text-text"
+            onClick={() => setOpen(false)}
+          >
+            <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary ring-1 ring-primary/30">
+              <Brain size={20} strokeWidth={2} aria-hidden="true" />
+            </span>
+            <span className="text-base tracking-tight hidden sm:inline-block">
+              NeuroScan <span className="text-primary">AI</span>
+            </span>
+          </Link>
+        </div>
 
         <nav className="hidden md:flex items-center gap-1" aria-label="Primary">
           {LINKS.map(({ href, label, icon: Icon }) => {

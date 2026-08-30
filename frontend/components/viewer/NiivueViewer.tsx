@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, Maximize, Minimize, ZoomIn, ZoomOut } from "lucide-react";
 import { Spinner } from "@/components/ui/Spinner";
+import { ClassLegend } from "./ClassLegend";
+import type { ClassVolumeStat } from "@/lib/types";
 
 export interface NiivueViewerProps {
   backgroundUrl: string;
@@ -11,17 +13,27 @@ export interface NiivueViewerProps {
   showOverlay: boolean;
   overlayOpacity: number;
   sliceType: "axial" | "coronal" | "sagittal" | "multiplanar" | "render";
+  visibleRegions?: string[];
+  stats?: ClassVolumeStat[];
+  onToggleRegion?: (key: string) => void;
 }
 
 // BraTS label convention: 0 = background, 1 = NCR/NET, 2 = ED, 4 = ET.
-// Colors match the fixed segmentation palette in globals.css / design-system.md.
-const SEGMENTATION_LABEL_COLORMAP = {
-  R: [0, 14, 250, 239],
-  G: [0, 165, 204, 68],
-  B: [0, 233, 21, 68],
-  A: [0, 200, 200, 200],
-  I: [0, 1, 2, 4],
-  labels: ["Background", "Necrotic Core (NCR/NET)", "Edema (ED)", "Enhancing Tumor (ET)"],
+const getSegmentationColormap = (visibleRegions?: string[]) => {
+  const cmap = {
+    R: [0, 14, 250, 239],
+    G: [0, 165, 204, 68],
+    B: [0, 233, 21, 68],
+    A: [0, 200, 200, 200],
+    I: [0, 1, 2, 4],
+    labels: ["Background", "Necrotic Core (NCR/NET)", "Edema (ED)", "Enhancing Tumor (ET)"],
+  };
+  if (visibleRegions) {
+    cmap.A[1] = visibleRegions.includes("ncr") ? 200 : 0;
+    cmap.A[2] = visibleRegions.includes("ed") ? 200 : 0;
+    cmap.A[3] = visibleRegions.includes("et") ? 200 : 0;
+  }
+  return cmap;
 };
 
 /**
@@ -36,11 +48,16 @@ export function NiivueViewer({
   showOverlay,
   overlayOpacity,
   sliceType,
+  visibleRegions,
+  stats,
+  onToggleRegion,
 }: NiivueViewerProps) {
+  const containerRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const nvRef = useRef<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   // Becomes true once Niivue has finished its async init and is attached to
   // the canvas. The loadVolumes effect depends on this so it re-runs as soon
   // as the viewer is ready (fixing the race condition where nvRef.current is
@@ -119,7 +136,7 @@ export function NiivueViewer({
 
         if (showOverlay && overlayUrl && nv.volumes.length > 1) {
           // Use setColormapLabel() on the volume object to properly parse the label lut.
-          nv.volumes[1].setColormapLabel(SEGMENTATION_LABEL_COLORMAP);
+          nv.volumes[1].setColormapLabel(getSegmentationColormap(visibleRegions));
           nv.volumes[1].opacity = overlayOpacity;
           nv.updateGLVolume?.();
         }
@@ -157,6 +174,14 @@ export function NiivueViewer({
     nv.updateGLVolume?.();
   }, [overlayOpacity, showOverlay]);
 
+  // Visible regions changes: update colormap labels dynamically.
+  useEffect(() => {
+    const nv = nvRef.current;
+    if (!nv || !showOverlay || nv.volumes?.length < 2) return;
+    nv.volumes[1].setColormapLabel(getSegmentationColormap(visibleRegions));
+    nv.updateGLVolume?.();
+  }, [visibleRegions, showOverlay]);
+
   // Slice-type-only changes.
   useEffect(() => {
     const nv = nvRef.current;
@@ -174,9 +199,45 @@ export function NiivueViewer({
     })();
   }, [sliceType]);
 
+  // Handle Fullscreen Toggle
+  const toggleFullscreen = () => {
+    if (!containerRef.current) return;
+    if (!document.fullscreenElement) {
+      containerRef.current.requestFullscreen().catch((err) => {
+        console.error("Error attempting to enable fullscreen:", err);
+      });
+    } else {
+      document.exitFullscreen();
+    }
+  };
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
+  }, []);
+
   return (
-    <div className="relative aspect-square sm:aspect-video w-full overflow-hidden rounded-lg border border-border bg-black">
+    <div
+      ref={containerRef}
+      className={`relative w-full overflow-hidden bg-black ${
+        isFullscreen ? "h-screen rounded-none" : "aspect-square sm:aspect-video rounded-lg border border-border"
+      }`}
+    >
       <canvas ref={canvasRef} className="h-full w-full" aria-label="NIfTI brain scan viewer" />
+      
+      {/* Fullscreen Button */}
+      <button
+        onClick={toggleFullscreen}
+        className="absolute top-4 right-4 z-10 flex h-10 w-10 items-center justify-center rounded-lg bg-black/60 text-white backdrop-blur transition-colors hover:bg-black/80"
+        aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+        title={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+      >
+        {isFullscreen ? <Minimize size={20} /> : <Maximize size={20} />}
+      </button>
+
       {loading && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/60">
           <Spinner size={28} label="Loading scan" />

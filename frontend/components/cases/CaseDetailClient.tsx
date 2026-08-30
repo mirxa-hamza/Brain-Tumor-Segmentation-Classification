@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useEffect, useState, useCallback } from "react";
-import { AlertTriangle, Download, PlayCircle, RefreshCw } from "lucide-react";
+import { AlertTriangle, Download, PlayCircle, RefreshCw, FileText } from "lucide-react";
 import { api, ApiRequestError } from "@/lib/api";
 import type { CaseDetail, Modality, PredictionResult } from "@/lib/types";
 import { MODALITY_LABELS } from "@/lib/types";
@@ -35,11 +35,13 @@ export function CaseDetailClient({ caseId }: { caseId: string }) {
   const [error, setError] = useState<string | null>(null);
   const [predicting, setPredicting] = useState(false);
   const [prediction, setPrediction] = useState<PredictionResult | null>(null);
+  const [generatingPdf, setGeneratingPdf] = useState(false);
 
   const [modality, setModality] = useState<Modality>("t1ce");
   const [showOverlay, setShowOverlay] = useState(true);
   const [overlayOpacity, setOverlayOpacity] = useState(0.6);
   const [sliceType, setSliceType] = useState<SliceType>("multiplanar");
+  const [visibleRegions, setVisibleRegions] = useState<string[]>(["ncr", "ed", "et"]);
 
   const loadCase = useCallback(() => {
     api
@@ -72,6 +74,48 @@ export function CaseDetailClient({ caseId }: { caseId: string }) {
     }
   }
 
+  const handleToggleRegion = (key: string) => {
+    setVisibleRegions((prev) =>
+      prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]
+    );
+  };
+
+  async function handleDownloadReport() {
+    if (!caseDetail) return;
+    setGeneratingPdf(true);
+    try {
+      const html2canvas = (await import("html2canvas")).default;
+      const jsPDF = (await import("jspdf")).default;
+
+      const content = document.getElementById("report-content");
+      if (!content) return;
+
+      const canvas = await html2canvas(content, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: "#0a0f1a", // matches --bg
+      });
+
+      const imgData = canvas.toDataURL("image/png");
+      const pdf = new jsPDF({
+        orientation: "portrait",
+        unit: "pt",
+        format: "a4",
+      });
+
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+
+      pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
+      pdf.save(`NeuroScan-Report-${caseDetail.case_id}.pdf`);
+    } catch (err) {
+      console.error("Failed to generate PDF:", err);
+      setError("Failed to generate PDF report.");
+    } finally {
+      setGeneratingPdf(false);
+    }
+  }
+
   if (error && !caseDetail) {
     return (
       <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 py-10">
@@ -93,13 +137,17 @@ export function CaseDetailClient({ caseId }: { caseId: string }) {
   const stats = prediction?.class_stats ?? [];
 
   return (
-    <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10 space-y-6">
+    <div id="report-content" className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10 space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold text-text tracking-tight">{caseDetail.name}</h1>
           <p className="mono-numeric text-xs text-text-muted mt-1">{caseDetail.case_id}</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2" data-html2canvas-ignore="true">
+          <Button onClick={handleDownloadReport} disabled={generatingPdf} className="bg-card text-text border border-border-strong hover:bg-card/80 hover:border-primary/40 h-11 px-4 inline-flex gap-2 rounded-md">
+            {generatingPdf ? <Spinner size={16} /> : <FileText size={16} aria-hidden="true" />}
+            Export PDF
+          </Button>
           {segmentationUrl && (
             <a
               href={segmentationUrl}
@@ -131,6 +179,7 @@ export function CaseDetailClient({ caseId }: { caseId: string }) {
           showOverlay={showOverlay && hasSegmentation}
           overlayOpacity={overlayOpacity}
           sliceType={sliceType}
+          visibleRegions={visibleRegions}
         />
 
         <div className="space-y-6">
@@ -164,7 +213,11 @@ export function CaseDetailClient({ caseId }: { caseId: string }) {
               </CardHeader>
               <CardContent>
                 {stats.length > 0 ? (
-                  <ClassLegend stats={stats} />
+                  <ClassLegend
+                    stats={stats}
+                    visibleRegions={visibleRegions}
+                    onToggleRegion={handleToggleRegion}
+                  />
                 ) : (
                   <p className="text-sm text-text-muted">
                     Volume stats appear here after you run segmentation in this session.
