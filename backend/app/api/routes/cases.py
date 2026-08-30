@@ -35,11 +35,15 @@ def delete_case(case_id: str) -> dict:
 
 @router.get("/api/cases/{case_id}/volume/{modality}")
 def get_volume(case_id: str, modality: str) -> FileResponse:
+    # NiiVue detects file type from the URL (not Content-Disposition), so the
+    # frontend appends .nii.gz to the URL. Strip it before looking up the file.
+    modality = modality.removesuffix(".nii.gz").removesuffix(".nii")
     path = case_store.volume_path(case_id, modality)
     return FileResponse(path, media_type="application/gzip", filename=f"{modality}.nii.gz")
 
 
 @router.get("/api/cases/{case_id}/segmentation")
+@router.get("/api/cases/{case_id}/segmentation.nii.gz")
 def get_segmentation(case_id: str) -> FileResponse:
     path = case_store.segmentation_path(case_id)
     return FileResponse(path, media_type="application/gzip", filename="segmentation.nii.gz")

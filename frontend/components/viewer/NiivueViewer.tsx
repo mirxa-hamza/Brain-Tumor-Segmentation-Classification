@@ -16,9 +16,9 @@ export interface NiivueViewerProps {
 // BraTS label convention: 0 = background, 1 = NCR/NET, 2 = ED, 4 = ET.
 // Colors match the fixed segmentation palette in globals.css / design-system.md.
 const SEGMENTATION_LABEL_COLORMAP = {
-  R: [0, 249, 250, 239],
-  G: [0, 115, 204, 68],
-  B: [0, 22, 21, 68],
+  R: [0, 14, 250, 239],
+  G: [0, 165, 204, 68],
+  B: [0, 233, 21, 68],
   A: [0, 200, 200, 200],
   I: [0, 1, 2, 4],
   labels: ["Background", "Necrotic Core (NCR/NET)", "Edema (ED)", "Enhancing Tumor (ET)"],
@@ -41,6 +41,11 @@ export function NiivueViewer({
   const nvRef = useRef<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // Becomes true once Niivue has finished its async init and is attached to
+  // the canvas. The loadVolumes effect depends on this so it re-runs as soon
+  // as the viewer is ready (fixing the race condition where nvRef.current is
+  // still null when the effect first fires).
+  const [nvReady, setNvReady] = useState(false);
 
   // Initial mount: create the Niivue instance once.
   useEffect(() => {
@@ -57,6 +62,7 @@ export function NiivueViewer({
         });
         await nv.attachToCanvas(canvasRef.current);
         nvRef.current = nv;
+        if (!cancelled) setNvReady(true);
       } catch (err) {
         if (!cancelled) {
           console.error("NiiVue failed to initialize", err);
@@ -74,28 +80,48 @@ export function NiivueViewer({
   }, []);
 
   // Reload volumes whenever the background modality or overlay visibility changes.
+  // Also re-runs when nvReady flips to true, which fires the initial load after
+  // the async Niivue init completes (fixes the race with nvRef.current === null).
   useEffect(() => {
     let cancelled = false;
 
     async function loadVolumes() {
       const nv = nvRef.current;
       if (!nv) return;
+      // Guard: NiiVue calls .toUpperCase() on each volume's url/name to detect
+      // the file extension. Ensure both are non-empty strings before proceeding.
+      if (!backgroundUrl) return;
+      const safeUrl = String(backgroundUrl);
+      // NiiVue's getFileExt() is called on `name || url`. If name has no dot
+      // the regex returns undefined and .toUpperCase() crashes. Ensure name
+      // always ends in .nii.gz so NiiVue can detect the type correctly.
+      const ensureNiiGz = (s: string) =>
+        s.endsWith(".nii.gz") || s.endsWith(".nii") ? s : `${s}.nii.gz`;
+      const safeName = ensureNiiGz(String(backgroundName || "scan"));
+
       setLoading(true);
       setError(null);
       try {
         const { SLICE_TYPE } = await import("@niivue/niivue");
         const volumeList: Record<string, unknown>[] = [
-          { url: backgroundUrl, name: backgroundName, colormap: "gray", opacity: 1 },
+          { url: safeUrl, name: safeName, colormap: "gray", opacity: 1 },
         ];
         if (showOverlay && overlayUrl) {
-          volumeList.push({ url: overlayUrl, name: "segmentation", colormap: "gray", opacity: overlayOpacity });
+          volumeList.push({
+            url: String(overlayUrl),
+            name: "segmentation.nii.gz",
+            opacity: overlayOpacity,
+          });
         }
         await nv.loadVolumes(volumeList);
+
         if (cancelled) return;
 
         if (showOverlay && overlayUrl && nv.volumes.length > 1) {
-          nv.setColormapLabel(1, SEGMENTATION_LABEL_COLORMAP);
+          // Use setColormapLabel() on the volume object to properly parse the label lut.
+          nv.volumes[1].setColormapLabel(SEGMENTATION_LABEL_COLORMAP);
           nv.volumes[1].opacity = overlayOpacity;
+          nv.updateGLVolume?.();
         }
 
         const sliceMap: Record<string, number> = {
@@ -106,7 +132,6 @@ export function NiivueViewer({
           render: SLICE_TYPE.RENDER,
         };
         nv.setSliceType(sliceMap[sliceType]);
-        nv.updateGLVolume?.();
         setLoading(false);
       } catch (err) {
         if (!cancelled) {
@@ -122,7 +147,7 @@ export function NiivueViewer({
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [backgroundUrl, overlayUrl, showOverlay]);
+  }, [nvReady, backgroundUrl, overlayUrl, showOverlay]);
 
   // Opacity-only changes: avoid a full volume reload.
   useEffect(() => {

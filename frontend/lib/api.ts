@@ -74,10 +74,12 @@ export const api = {
   predict: (caseId: string) =>
     request<PredictionResult>(`/api/cases/${caseId}/predict`, { method: "POST" }),
 
+  // NiiVue uses a regex on the URL to detect the file extension
+  // (it does NOT read Content-Disposition). URLs must end in .nii.gz.
   volumeUrl: (caseId: string, modality: string) =>
-    `${API_BASE}/api/cases/${caseId}/volume/${modality}`,
+    `${API_BASE}/api/cases/${caseId}/volume/${modality}.nii.gz`,
 
-  segmentationUrl: (caseId: string) => `${API_BASE}/api/cases/${caseId}/segmentation`,
+  segmentationUrl: (caseId: string) => `${API_BASE}/api/cases/${caseId}/segmentation.nii.gz`,
 
   deleteCase: (caseId: string) =>
     request<{ ok: boolean }>(`/api/cases/${caseId}`, { method: "DELETE" }),

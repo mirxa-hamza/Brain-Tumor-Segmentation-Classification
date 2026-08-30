@@ -20,7 +20,7 @@
   --destructive: #ef4444;
 
   /* Fixed segmentation class colors — never change meaning across the app */
-  --tumor-ncr: #f97316; /* necrotic / non-enhancing tumor core */
+  --tumor-ncr: #0ea5e9; /* necrotic / non-enhancing tumor core (blue) */
   --tumor-ed: #facc15; /* peritumoral edema */
   --tumor-et: #ef4444; /* enhancing tumor */
 }
