@@ -23,16 +23,21 @@ export interface CaseSummary {
   has_segmentation: boolean;
 }
 
-export interface CaseDetail extends CaseSummary {
-  error_message?: string | null;
-}
-
 export interface ClassVolumeStat {
   key: "ncr" | "ed" | "et" | "wt" | "tc";
   label: string;
   voxel_count: number;
   volume_cm3: number;
   color: string;
+}
+
+export interface CaseDetail extends CaseSummary {
+  error_message?: string | null;
+  // Persisted from the most recent successful prediction so the legend/report can show
+  // results without forcing a re-run every time the case is reopened.
+  class_stats?: ClassVolumeStat[] | null;
+  inference_time_ms?: number | null;
+  volume_shape?: [number, number, number] | null;
 }
 
 export interface PredictionResult {

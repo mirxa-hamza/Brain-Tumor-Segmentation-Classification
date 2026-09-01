@@ -1,20 +1,17 @@
 import type { Metadata } from "next";
-import { IBM_Plex_Sans, JetBrains_Mono } from "next/font/google";
+import { Roboto } from "next/font/google";
 import "./globals.css";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
+import { AppLoadingScreen } from "@/components/layout/AppLoadingScreen";
 
-const plexSans = IBM_Plex_Sans({
+// "Google Sans" isn't published on Google Fonts (no open webfont license), so
+// Roboto — Google's own open-source UI typeface and the closest public relative
+// of Google Sans's forms — is used throughout as the documented substitute.
+const roboto = Roboto({
   subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700"],
-  variable: "--font-plex-sans",
-  display: "swap",
-});
-
-const jetbrainsMono = JetBrains_Mono({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-  variable: "--font-jetbrains-mono",
+  weight: ["300", "400", "500", "700", "900"],
+  variable: "--font-sans",
   display: "swap",
 });
 
@@ -26,8 +23,9 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${plexSans.variable} ${jetbrainsMono.variable}`}>
+    <html lang="en" className={roboto.variable}>
       <body className="min-h-screen flex flex-col font-sans antialiased">
+        <AppLoadingScreen />
         <a
           href="#main-content"
           className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:top-4 focus:left-4 focus:bg-primary focus:text-white focus:px-4 focus:py-2 focus:rounded"

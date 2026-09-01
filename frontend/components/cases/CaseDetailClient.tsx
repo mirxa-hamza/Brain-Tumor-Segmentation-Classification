@@ -14,6 +14,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { DemoModeBanner } from "@/components/ui/DemoModeBanner";
 import { ClassLegend } from "@/components/viewer/ClassLegend";
 import { ViewerControls } from "@/components/viewer/ViewerControls";
+import type { SliceType } from "@/components/viewer/NiivueViewer";
 import { formatMs } from "@/lib/utils";
 
 const NiivueViewer = dynamic(
@@ -22,13 +23,11 @@ const NiivueViewer = dynamic(
     ssr: false,
     loading: () => (
       <div className="aspect-square sm:aspect-video w-full rounded-lg border border-border bg-black flex items-center justify-center">
-        <Spinner size={28} label="Loading viewer" />
+        <Spinner size={28} label="Preparing MRI viewer…" />
       </div>
     ),
   }
 );
-
-type SliceType = "axial" | "coronal" | "sagittal" | "multiplanar" | "render";
 
 export function CaseDetailClient({ caseId }: { caseId: string }) {
   const [caseDetail, setCaseDetail] = useState<CaseDetail | null>(null);
@@ -36,6 +35,7 @@ export function CaseDetailClient({ caseId }: { caseId: string }) {
   const [predicting, setPredicting] = useState(false);
   const [prediction, setPrediction] = useState<PredictionResult | null>(null);
   const [generatingPdf, setGeneratingPdf] = useState(false);
+  const [pdfError, setPdfError] = useState<string | null>(null);
 
   const [modality, setModality] = useState<Modality>("t1ce");
   const [showOverlay, setShowOverlay] = useState(true);
@@ -68,7 +68,11 @@ export function CaseDetailClient({ caseId }: { caseId: string }) {
       setPrediction(result);
       loadCase();
     } catch (e) {
-      setError(e instanceof ApiRequestError ? e.message : "Prediction failed");
+      setError(
+        e instanceof ApiRequestError
+          ? e.message
+          : "Segmentation could not be completed. Please retry the analysis."
+      );
     } finally {
       setPredicting(false);
     }
@@ -83,34 +87,31 @@ export function CaseDetailClient({ caseId }: { caseId: string }) {
   async function handleDownloadReport() {
     if (!caseDetail) return;
     setGeneratingPdf(true);
+    setPdfError(null);
     try {
-      const html2canvas = (await import("html2canvas")).default;
-      const jsPDF = (await import("jspdf")).default;
-
-      const content = document.getElementById("report-content");
-      if (!content) return;
-
-      const canvas = await html2canvas(content, {
-        scale: 2,
-        useCORS: true,
-        backgroundColor: "#0a0f1a", // matches --bg
-      });
-
-      const imgData = canvas.toDataURL("image/png");
-      const pdf = new jsPDF({
-        orientation: "portrait",
-        unit: "pt",
-        format: "a4",
-      });
-
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-
-      pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
-      pdf.save(`NeuroScan-Report-${caseDetail.case_id}.pdf`);
+      const blob = await api.downloadReport(caseId);
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `NeuroScan-Report-${caseDetail.case_id}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
     } catch (err) {
-      console.error("Failed to generate PDF:", err);
-      setError("Failed to generate PDF report.");
+      // Some environments (security software, certain browser configs) block the in-page
+      // fetch() for this endpoint even though the backend is reachable and a direct browser
+      // navigation to the same URL works fine — fall back to opening it directly rather than
+      // showing an error for something that isn't actually broken.
+      console.error("In-page PDF fetch failed, falling back to direct download:", err);
+      const opened = window.open(api.reportUrl(caseId), "_blank");
+      if (!opened) {
+        setPdfError(
+          err instanceof ApiRequestError
+            ? err.message
+            : "Unable to generate the report. Please try again."
+        );
+      }
     } finally {
       setGeneratingPdf(false);
     }
@@ -119,7 +120,16 @@ export function CaseDetailClient({ caseId }: { caseId: string }) {
   if (error && !caseDetail) {
     return (
       <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 py-10">
-        <EmptyState icon={AlertTriangle} title="Couldn't load this case" description={error} />
+        <EmptyState
+          icon={AlertTriangle}
+          title="Couldn't load this case"
+          description={error}
+          action={
+            <Button variant="secondary" onClick={() => { setError(null); loadCase(); }}>
+              Retry
+            </Button>
+          }
+        />
       </div>
     );
   }
@@ -134,19 +144,27 @@ export function CaseDetailClient({ caseId }: { caseId: string }) {
 
   const hasSegmentation = caseDetail.has_segmentation || !!prediction;
   const segmentationUrl = hasSegmentation ? api.segmentationUrl(caseId) : null;
-  const stats = prediction?.class_stats ?? [];
+  // Prefer a fresh in-session prediction; fall back to the stats persisted on the case
+  // itself so the legend still shows after a reload without forcing a re-run.
+  const stats = prediction?.class_stats ?? caseDetail.class_stats ?? [];
+  const inferenceTimeMs = prediction?.inference_time_ms ?? caseDetail.inference_time_ms;
 
   return (
-    <div id="report-content" className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10 space-y-6">
+    <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10 space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold text-text tracking-tight">{caseDetail.name}</h1>
           <p className="mono-numeric text-xs text-text-muted mt-1">{caseDetail.case_id}</p>
         </div>
-        <div className="flex items-center gap-2" data-html2canvas-ignore="true">
-          <Button onClick={handleDownloadReport} disabled={generatingPdf} className="bg-card text-text border border-border-strong hover:bg-card/80 hover:border-primary/40 h-11 px-4 inline-flex gap-2 rounded-md">
+        <div className="flex items-center gap-2">
+          <Button
+            onClick={handleDownloadReport}
+            disabled={generatingPdf || !hasSegmentation}
+            title={!hasSegmentation ? "Run segmentation to generate a report" : undefined}
+            className="bg-card text-text border border-border-strong hover:bg-card/80 hover:border-primary/40 h-11 px-4 inline-flex gap-2 rounded-md"
+          >
             {generatingPdf ? <Spinner size={16} /> : <FileText size={16} aria-hidden="true" />}
-            Export PDF
+            {generatingPdf ? "Generating report…" : "Export PDF"}
           </Button>
           {segmentationUrl && (
             <a
@@ -159,15 +177,34 @@ export function CaseDetailClient({ caseId }: { caseId: string }) {
           )}
           <Button onClick={handlePredict} loading={predicting}>
             {hasSegmentation ? <RefreshCw size={16} aria-hidden="true" /> : <PlayCircle size={16} aria-hidden="true" />}
-            {hasSegmentation ? "Re-run segmentation" : "Run segmentation"}
+            {predicting ? "Running tumor segmentation…" : hasSegmentation ? "Re-run segmentation" : "Run segmentation"}
           </Button>
         </div>
       </div>
 
       {prediction?.demo_mode && <DemoModeBanner />}
       {error && (
-        <p role="alert" className="text-sm text-destructive">
+        <p role="alert" className="flex items-center gap-3 text-sm text-destructive">
           {error}
+          <button
+            type="button"
+            onClick={handlePredict}
+            className="underline underline-offset-2 hover:text-destructive/80"
+          >
+            Retry
+          </button>
+        </p>
+      )}
+      {pdfError && (
+        <p role="alert" className="flex items-center gap-3 text-sm text-destructive">
+          {pdfError}
+          <button
+            type="button"
+            onClick={handleDownloadReport}
+            className="underline underline-offset-2 hover:text-destructive/80"
+          >
+            Retry
+          </button>
         </p>
       )}
 
@@ -176,10 +213,19 @@ export function CaseDetailClient({ caseId }: { caseId: string }) {
           backgroundUrl={api.volumeUrl(caseId, modality)}
           backgroundName={`${MODALITY_LABELS[modality]}.nii.gz`}
           overlayUrl={segmentationUrl}
+          hasSegmentation={hasSegmentation}
           showOverlay={showOverlay && hasSegmentation}
+          onToggleOverlay={() => setShowOverlay((v) => !v)}
           overlayOpacity={overlayOpacity}
+          onOpacityChange={setOverlayOpacity}
           sliceType={sliceType}
+          onSliceTypeChange={setSliceType}
+          availableModalities={caseDetail.modalities_present}
+          modality={modality}
+          onModalityChange={setModality}
           visibleRegions={visibleRegions}
+          stats={stats}
+          onToggleRegion={handleToggleRegion}
         />
 
         <div className="space-y-6">
@@ -207,8 +253,8 @@ export function CaseDetailClient({ caseId }: { caseId: string }) {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle>Tumor sub-regions</CardTitle>
-                {prediction && (
-                  <Badge tone="default">{formatMs(prediction.inference_time_ms)}</Badge>
+                {inferenceTimeMs != null && (
+                  <Badge tone="default">{formatMs(inferenceTimeMs)}</Badge>
                 )}
               </CardHeader>
               <CardContent>
@@ -220,7 +266,7 @@ export function CaseDetailClient({ caseId }: { caseId: string }) {
                   />
                 ) : (
                   <p className="text-sm text-text-muted">
-                    Volume stats appear here after you run segmentation in this session.
+                    Volume stats appear here after you run segmentation.
                   </p>
                 )}
               </CardContent>

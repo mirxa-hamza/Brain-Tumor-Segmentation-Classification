@@ -22,15 +22,17 @@ export function Navbar() {
     <header className="sticky top-0 z-40 border-b border-border bg-bg/80 backdrop-blur supports-[backdrop-filter]:bg-bg/60">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         <div className="flex items-center gap-4">
-          <button
-            onClick={() => router.back()}
-            className="flex h-9 w-9 items-center justify-center rounded-lg text-text-muted hover:text-text hover:bg-card transition-colors"
-            aria-label="Go back"
-            title="Go back"
-          >
-            <ArrowLeft size={20} />
-          </button>
-          
+          {pathname !== "/" && (
+            <button
+              onClick={() => router.back()}
+              className="flex h-9 w-9 items-center justify-center rounded-lg text-text-muted hover:text-text hover:bg-card transition-colors"
+              aria-label="Go back"
+              title="Go back"
+            >
+              <ArrowLeft size={20} />
+            </button>
+          )}
+
           <Link
             href="/"
             className="flex items-center gap-2.5 font-semibold text-text"

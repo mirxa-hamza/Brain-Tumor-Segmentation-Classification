@@ -9,11 +9,17 @@ interface ClassLegendProps {
 }
 
 export function ClassLegend({ stats, visibleRegions = [], onToggleRegion }: ClassLegendProps) {
+  // NCR/ED/ET are individual voxel labels — the NiiVue overlay can toggle each
+  // independently. WT (whole tumor) and TC (tumor core) are derived unions of those
+  // labels, not separate labels themselves, so they're shown as read-only totals below
+  // rather than as toggles.
   const regions = stats.filter((s) => s.key === "ncr" || s.key === "ed" || s.key === "et");
+  const summary = stats.filter((s) => s.key === "wt" || s.key === "tc");
 
   return (
-    <ul className="space-y-2" aria-label="Segmentation class legend">
-      {regions.map((s) => {
+    <div className="space-y-3">
+      <ul className="space-y-2" aria-label="Segmentation class legend">
+        {regions.map((s) => {
         const isVisible = visibleRegions.includes(s.key);
         return (
           <li key={s.key} className={`flex items-center justify-between gap-3 text-sm transition-opacity ${!isVisible ? "opacity-50" : ""}`}>
@@ -46,7 +52,28 @@ export function ClassLegend({ stats, visibleRegions = [], onToggleRegion }: Clas
             <span className="mono-numeric text-text-muted shrink-0">{formatVolume(s.volume_cm3)}</span>
           </li>
         );
-      })}
-    </ul>
+        })}
+      </ul>
+
+      {summary.length > 0 && (
+        <ul className="space-y-1.5 border-t border-border pt-3" aria-label="Composite tumor volumes">
+          {summary.map((s) => (
+            <li key={s.key} className="flex items-center justify-between gap-3 text-sm">
+              <span className="flex items-center gap-2.5 min-w-0 flex-1">
+                <span
+                  className="h-4 w-4 shrink-0 rounded-sm ring-1 ring-white/10"
+                  style={{ backgroundColor: s.color }}
+                  aria-hidden="true"
+                />
+                <span className="text-text-muted truncate">{s.label}</span>
+              </span>
+              <span className="mono-numeric text-text shrink-0 font-medium">
+                {formatVolume(s.volume_cm3)}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   );
 }

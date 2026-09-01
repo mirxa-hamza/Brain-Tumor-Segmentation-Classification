@@ -1,16 +1,16 @@
 "use client";
 
-import { Eye, EyeOff, Grid2x2, Layers, RectangleHorizontal, RectangleVertical, Square } from "lucide-react";
+import { Box, Eye, EyeOff, Grid2x2, Layers, RectangleHorizontal, RectangleVertical, Square } from "lucide-react";
 import { MODALITIES, MODALITY_LABELS, type Modality } from "@/lib/types";
 import { cn } from "@/lib/utils";
-
-type SliceType = "axial" | "coronal" | "sagittal" | "multiplanar" | "render";
+import type { SliceType } from "./NiivueViewer";
 
 const SLICE_OPTIONS: { value: SliceType; label: string; icon: typeof Grid2x2 }[] = [
   { value: "multiplanar", label: "Multi-planar", icon: Grid2x2 },
   { value: "axial", label: "Axial", icon: RectangleHorizontal },
   { value: "coronal", label: "Coronal", icon: RectangleVertical },
   { value: "sagittal", label: "Sagittal", icon: Square },
+  { value: "render", label: "3D render", icon: Box },
 ];
 
 export function ViewerControls({

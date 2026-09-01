@@ -48,6 +48,31 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return res.json() as Promise<T>;
 }
 
+async function requestBlob(path: string): Promise<Blob> {
+  let res: Response;
+  try {
+    res = await fetch(`${API_BASE}${path}`);
+  } catch {
+    throw new ApiRequestError(
+      "Can't reach the NeuroScan backend. Is it running on localhost:8000?",
+      0
+    );
+  }
+
+  if (!res.ok) {
+    let detail = res.statusText;
+    try {
+      const body = await res.json();
+      detail = body.detail ?? detail;
+    } catch {
+      // ignore, use statusText
+    }
+    throw new ApiRequestError(detail, res.status);
+  }
+
+  return res.blob();
+}
+
 export const api = {
   base: API_BASE,
 
@@ -80,6 +105,10 @@ export const api = {
     `${API_BASE}/api/cases/${caseId}/volume/${modality}.nii.gz`,
 
   segmentationUrl: (caseId: string) => `${API_BASE}/api/cases/${caseId}/segmentation.nii.gz`,
+
+  reportUrl: (caseId: string) => `${API_BASE}/api/cases/${caseId}/report.pdf`,
+
+  downloadReport: (caseId: string) => requestBlob(`/api/cases/${caseId}/report.pdf`),
 
   deleteCase: (caseId: string) =>
     request<{ ok: boolean }>(`/api/cases/${caseId}`, { method: "DELETE" }),

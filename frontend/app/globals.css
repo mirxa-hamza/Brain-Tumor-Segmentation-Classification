@@ -67,8 +67,8 @@ body {
 }
 
 .mono-numeric {
-  font-family: var(--font-jetbrains-mono), "JetBrains Mono", ui-monospace, monospace;
   font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -19,16 +19,21 @@ class CaseSummary(BaseModel):
     has_segmentation: bool
 
 
-class CaseDetail(CaseSummary):
-    error_message: Optional[str] = None
-
-
 class ClassVolumeStat(BaseModel):
     key: ClassKey
     label: str
     voxel_count: int
     volume_cm3: float
     color: str
+
+
+class CaseDetail(CaseSummary):
+    error_message: Optional[str] = None
+    # Persisted from the most recent successful prediction so the UI (and the PDF report) can
+    # show segmentation results without forcing a re-run every time the case is reopened.
+    class_stats: Optional[list[ClassVolumeStat]] = None
+    inference_time_ms: Optional[float] = None
+    volume_shape: Optional[tuple[int, int, int]] = None
 
 
 class PredictionResult(BaseModel):

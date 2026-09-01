@@ -120,7 +120,7 @@ def run_inference(case_id: str) -> dict:
         input_tensor = torch.from_numpy(np.stack(stacked, axis=0)).unsqueeze(0).float()
         input_tensor = input_tensor.to(_holder.device)
 
-        with torch.no_grad():
+        with torch.inference_mode():
             logits = model(input_tensor)[0].cpu().numpy()  # (3, D, H, W) at MODEL_INPUT_SHAPE
 
         probs_fitted = sigmoid(logits)
@@ -144,3 +144,29 @@ def run_inference(case_id: str) -> dict:
         "class_stats": class_stats,
         "segmentation_url": f"/api/cases/{case_id}/segmentation",
     }
+
+
+def load_case_volume_and_segmentation(
+    case_id: str,
+) -> tuple[np.ndarray, Optional[np.ndarray], float, tuple[int, int, int]]:
+    """Loads the reference-modality volume (prefers t1ce, same preference as `run_inference`)
+    and the saved segmentation label map (if present) directly from disk. Used by the PDF report
+    generator, which recomputes stats/slice images from the same saved artifacts `run_inference`
+    produced rather than trusting possibly-stale persisted summary fields on the case."""
+    case_dir = case_store.case_root(case_id)
+    raw_dir = case_dir / "raw"
+
+    reference_vol = None
+    for modality in ["t1ce"] + [m for m in MODALITIES if m != "t1ce"]:
+        path = raw_dir / f"{modality}.nii.gz"
+        if path.exists():
+            reference_vol = load_nifti(path)
+            break
+    if reference_vol is None:
+        raise ValueError("No MRI volumes found for this case")
+
+    seg_path = case_dir / "segmentation.nii.gz"
+    label_map = load_nifti(seg_path).data.astype(np.uint8) if seg_path.exists() else None
+
+    shape = tuple(int(s) for s in reference_vol.data.shape)
+    return reference_vol.data, label_map, reference_vol.voxel_volume_mm3, shape

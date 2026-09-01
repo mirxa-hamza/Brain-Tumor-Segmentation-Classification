@@ -29,18 +29,41 @@ def probs_to_labelmap(probs: np.ndarray, threshold: float = 0.5) -> np.ndarray:
     return label_map
 
 
+def _stat_row(key: str, label: str, color: str, mask: np.ndarray, voxel_volume_mm3: float) -> dict:
+    voxel_count = int(np.count_nonzero(mask))
+    volume_cm3 = voxel_count * voxel_volume_mm3 / 1000.0
+    return {
+        "key": key,
+        "label": label,
+        "voxel_count": voxel_count,
+        "volume_cm3": round(volume_cm3, 3),
+        "color": color,
+    }
+
+
 def compute_class_stats(label_map: np.ndarray, voxel_volume_mm3: float) -> list[dict]:
-    stats = []
-    for key, info in CLASS_INFO.items():
-        voxel_count = int(np.count_nonzero(label_map == info["label_value"]))
-        volume_cm3 = voxel_count * voxel_volume_mm3 / 1000.0
-        stats.append(
-            {
-                "key": key,
-                "label": info["name"],
-                "voxel_count": voxel_count,
-                "volume_cm3": round(volume_cm3, 3),
-                "color": info["color"],
-            }
+    """Per-label stats (NCR/ED/ET) plus two composite volumes derived from the same label map:
+    whole tumor (WT = NCR ∪ ED ∪ ET) and tumor core (TC = NCR ∪ ET). WT/TC aren't separate model
+    outputs or voxel labels — they're unions of the labels already predicted, so they're computed
+    here rather than tracked in CLASS_INFO.
+    """
+    stats = [
+        _stat_row(key, info["name"], info["color"], label_map == info["label_value"], voxel_volume_mm3)
+        for key, info in CLASS_INFO.items()
+    ]
+
+    ncr_value = CLASS_INFO["ncr"]["label_value"]
+    et_value = CLASS_INFO["et"]["label_value"]
+    stats.append(
+        _stat_row("wt", "Whole Tumor (WT)", "#22D3EE", label_map != 0, voxel_volume_mm3)
+    )
+    stats.append(
+        _stat_row(
+            "tc",
+            "Tumor Core (TC)",
+            "#F97316",
+            (label_map == ncr_value) | (label_map == et_value),
+            voxel_volume_mm3,
         )
+    )
     return stats

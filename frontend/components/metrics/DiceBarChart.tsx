@@ -29,7 +29,7 @@ export function DiceBarChart({ dicePerClass }: { dicePerClass: MetricsPayload["d
           width={150}
         />
         <Tooltip
-          formatter={(value: number) => [`${value}%`, "Dice score"]}
+          formatter={(value) => [`${value}%`, "Dice score"]}
           contentStyle={{ background: "#141B2D", border: "1px solid #263149", borderRadius: 8, fontSize: 13 }}
           labelStyle={{ color: "#F8FAFC" }}
           cursor={{ fill: "#ffffff08" }}

@@ -32,8 +32,10 @@ const config: Config = {
         },
       },
       fontFamily: {
-        sans: ["var(--font-plex-sans)", "IBM Plex Sans", "system-ui", "sans-serif"],
-        mono: ["var(--font-jetbrains-mono)", "JetBrains Mono", "ui-monospace", "monospace"],
+        // "Google Sans" has no public webfont release; Roboto is the closest open
+        // relative and is used for all UI text, including numeric/tabular data.
+        sans: ["var(--font-sans)", "Roboto", "system-ui", "sans-serif"],
+        mono: ["var(--font-sans)", "Roboto", "system-ui", "sans-serif"],
       },
       borderRadius: {
         sm: "6px",

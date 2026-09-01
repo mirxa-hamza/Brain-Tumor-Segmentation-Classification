@@ -1,9 +1,14 @@
-from fastapi import APIRouter, File, Form, HTTPException, UploadFile
+import json
+
+from fastapi import APIRouter, File, Form, HTTPException, Response, UploadFile
 from fastapi.responses import FileResponse
 
+from app.core.config import APP_VERSION, METRICS_PATH
 from app.schemas import CaseDetail, CaseSummary, PredictionResult
 from app.services import case_store
-from app.services.inference import run_inference
+from app.services.inference import get_model_status, load_case_volume_and_segmentation, run_inference
+from app.services.postprocessing import compute_class_stats
+from app.services.report import build_report_pdf, render_all_slice_images
 
 router = APIRouter(tags=["cases"])
 
@@ -58,5 +63,47 @@ def predict(case_id: str) -> dict:
         case_store.update_case(case_id, status="failed", error_message=str(exc))
         raise HTTPException(status_code=500, detail=f"Prediction failed: {exc}") from exc
 
-    case_store.update_case(case_id, status="completed", has_segmentation=True, error_message=None)
+    case_store.update_case(
+        case_id,
+        status="completed",
+        has_segmentation=True,
+        error_message=None,
+        class_stats=result["class_stats"],
+        inference_time_ms=result["inference_time_ms"],
+        volume_shape=result["volume_shape"],
+    )
     return result
+
+
+@router.get("/api/cases/{case_id}/report.pdf")
+def get_report(case_id: str) -> Response:
+    case_meta = case_store.get_case(case_id)
+    if not case_meta.get("has_segmentation"):
+        raise HTTPException(
+            status_code=409,
+            detail="Run segmentation for this case before generating a report.",
+        )
+
+    try:
+        volume, label_map, voxel_volume_mm3, volume_shape = load_case_volume_and_segmentation(case_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+    class_stats = compute_class_stats(label_map, voxel_volume_mm3) if label_map is not None else []
+    slice_images = render_all_slice_images(volume, label_map)
+    model_status = {**get_model_status(), "version": APP_VERSION}
+    metrics = json.loads(METRICS_PATH.read_text()) if METRICS_PATH.exists() else None
+
+    pdf_bytes = build_report_pdf(
+        case_meta=case_meta,
+        class_stats=class_stats,
+        model_status=model_status,
+        metrics=metrics,
+        slice_images=slice_images,
+        volume_shape=volume_shape,
+    )
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="NeuroScan-Report-{case_id}.pdf"'},
+    )
