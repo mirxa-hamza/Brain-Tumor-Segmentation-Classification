@@ -8,6 +8,19 @@ Read **`CLAUDE.md`** for the full architecture/decisions and **`PLAN.md`** for b
 
 ## Quickstart
 
+### One command (recommended)
+
+After completing the one-time setup below, open PowerShell in the project root and run:
+
+```powershell
+npm run dev
+```
+
+This starts the FastAPI backend and Next.js frontend together. Open
+`http://localhost:3000`, and press `Ctrl+C` once to stop both services.
+
+### One-time setup
+
 **Backend** (Python 3.10+):
 
 ```bash
