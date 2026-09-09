@@ -6,7 +6,11 @@ import type {
   PredictionResult,
 } from "./types";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
+// Route browser requests through Next.js by default. Besides removing CORS as a failure
+// point, this protects local WebGL volume loads from extensions that intercept requests
+// to a separate localhost port. Set NEXT_PUBLIC_API_BASE_URL only for an intentional
+// remote backend deployment.
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "/backend";
 
 export class ApiRequestError extends Error {
   status: number;
@@ -48,31 +52,6 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return res.json() as Promise<T>;
 }
 
-async function requestBlob(path: string): Promise<Blob> {
-  let res: Response;
-  try {
-    res = await fetch(`${API_BASE}${path}`);
-  } catch {
-    throw new ApiRequestError(
-      "Can't reach the NeuroScan backend. Is it running on localhost:8000?",
-      0
-    );
-  }
-
-  if (!res.ok) {
-    let detail = res.statusText;
-    try {
-      const body = await res.json();
-      detail = body.detail ?? detail;
-    } catch {
-      // ignore, use statusText
-    }
-    throw new ApiRequestError(detail, res.status);
-  }
-
-  return res.blob();
-}
-
 export const api = {
   base: API_BASE,
 
@@ -99,16 +78,15 @@ export const api = {
   predict: (caseId: string) =>
     request<PredictionResult>(`/api/cases/${caseId}/predict`, { method: "POST" }),
 
-  // NiiVue uses a regex on the URL to detect the file extension
-  // (it does NOT read Content-Disposition). URLs must end in .nii.gz.
+  // Keep viewer URLs extensionless. Some browser download managers intercept `.nii.gz`
+  // URLs before NiiVue can fetch them. NiiVue receives an explicit NIfTI filename from
+  // the viewer component, so format detection remains reliable.
   volumeUrl: (caseId: string, modality: string) =>
-    `${API_BASE}/api/cases/${caseId}/volume/${modality}.nii.gz`,
+    `${API_BASE}/api/cases/${caseId}/volume/${modality}`,
 
-  segmentationUrl: (caseId: string) => `${API_BASE}/api/cases/${caseId}/segmentation.nii.gz`,
+  segmentationUrl: (caseId: string) => `${API_BASE}/api/cases/${caseId}/segmentation`,
 
   reportUrl: (caseId: string) => `${API_BASE}/api/cases/${caseId}/report.pdf`,
-
-  downloadReport: (caseId: string) => requestBlob(`/api/cases/${caseId}/report.pdf`),
 
   deleteCase: (caseId: string) =>
     request<{ ok: boolean }>(`/api/cases/${caseId}`, { method: "DELETE" }),

@@ -8,6 +8,7 @@ already present elsewhere in the API.
 from __future__ import annotations
 
 import io
+from datetime import datetime, timezone
 from typing import Optional
 
 import numpy as np
@@ -36,6 +37,19 @@ _BRAND = ParagraphStyle(
     fontSize=11, spaceAfter=2,
 )
 _TITLE = ParagraphStyle("ReportTitle", parent=_STYLES["Title"], textColor=colors.HexColor("#0F172A"))
+_SUBTITLE = ParagraphStyle(
+    "ReportSubtitle", parent=_STYLES["Normal"], textColor=colors.HexColor("#475569"), leading=15
+)
+_NOTICE = ParagraphStyle(
+    "ReportNotice",
+    parent=_STYLES["Normal"],
+    textColor=colors.HexColor("#075985"),
+    backColor=colors.HexColor("#E0F2FE"),
+    borderColor=colors.HexColor("#7DD3FC"),
+    borderWidth=0.5,
+    borderPadding=8,
+    leading=14,
+)
 
 MODALITY_LABELS = {"t1": "T1", "t1ce": "T1-CE (contrast)", "t2": "T2", "flair": "FLAIR"}
 
@@ -137,7 +151,7 @@ def _kv_table(rows: list[tuple[str, str]]) -> Table:
     return table
 
 
-def _image_flowable(png_bytes: bytes, max_width: float = 9 * cm) -> RLImage:
+def _image_flowable(png_bytes: bytes, max_width: float = 7.4 * cm) -> RLImage:
     with Image.open(io.BytesIO(png_bytes)) as im:
         w, h = im.size
     ratio = h / w
@@ -165,11 +179,22 @@ def build_report_pdf(
     story: list = []
 
     story.append(Paragraph("NeuroScan AI", _BRAND))
-    story.append(Paragraph("MRI Segmentation Report", _TITLE))
+    story.append(Paragraph("AI-Assisted Brain MRI Segmentation Report", _TITLE))
+    story.append(Paragraph("Preliminary quantitative analysis - for qualified clinical review", _SUBTITLE))
     story.append(Paragraph(case_meta.get("name") or "Unnamed case", _MUTED))
     story.append(Spacer(1, 0.5 * cm))
 
-    story.append(_section_title("Case information"))
+    story.append(
+        Paragraph(
+            "<b>Important:</b> This document reports automated segmentation measurements. "
+            "It does not establish a diagnosis, replace a radiologist's interpretation, or "
+            "provide treatment advice.",
+            _NOTICE,
+        )
+    )
+    story.append(Spacer(1, 0.45 * cm))
+
+    story.append(_section_title("Examination and case information"))
     story.append(
         _kv_table(
             [
@@ -177,12 +202,25 @@ def build_report_pdf(
                 ("Case name", case_meta.get("name", "—")),
                 ("Status", str(case_meta.get("status", "—")).capitalize()),
                 ("Created", str(case_meta.get("created_at", "—"))),
+                ("Report generated (UTC)", datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")),
             ]
         )
     )
     story.append(Spacer(1, 0.4 * cm))
 
-    story.append(_section_title("Imaging information"))
+    story.append(_section_title("Clinical information"))
+    story.append(
+        _kv_table(
+            [
+                ("Clinical indication", "Not supplied with this local research case"),
+                ("Patient demographics", "Not supplied"),
+                ("Comparison study", "Not supplied"),
+            ]
+        )
+    )
+    story.append(Spacer(1, 0.4 * cm))
+
+    story.append(_section_title("Technique"))
     modalities = ", ".join(
         MODALITY_LABELS.get(m, m) for m in case_meta.get("modalities_present", [])
     )
@@ -215,7 +253,6 @@ def build_report_pdf(
     story.append(Spacer(1, 0.4 * cm))
 
     if class_stats:
-        story.append(_section_title("Quantitative results"))
         rows = [["Region", "Voxels", "Volume (cm³)"]] + [
             [s["label"], f"{s['voxel_count']:,}", f"{s['volume_cm3']:.2f}"] for s in class_stats
         ]
@@ -235,10 +272,12 @@ def build_report_pdf(
                 ]
             )
         )
-        story.append(table)
+        # Keep the section heading and table together. Without this, ReportLab can leave
+        # a stranded table header at the bottom of one page and place its data on the next.
+        story.append(KeepTogether([_section_title("Quantitative results"), table]))
         story.append(Spacer(1, 0.4 * cm))
 
-        story.append(_section_title("Segmentation findings"))
+        story.append(_section_title("Automated segmentation findings"))
         by_key = {s["key"]: s for s in class_stats}
         sentences = []
         if "wt" in by_key:
@@ -249,7 +288,14 @@ def build_report_pdf(
             sentences.append(f"Enhancing tumor volume: {by_key['et']['volume_cm3']:.2f} cm³.")
         if "ed" in by_key:
             sentences.append(f"Peritumoral edema volume: {by_key['ed']['volume_cm3']:.2f} cm³.")
-        story.append(Paragraph(" ".join(sentences), _STYLES["Normal"]))
+        story.append(
+            Paragraph(
+                " ".join(sentences)
+                + " Measurements are derived from the predicted label map and voxel spacing; "
+                "they should be checked against the source images before clinical use.",
+                _STYLES["Normal"],
+            )
+        )
         story.append(Spacer(1, 0.15 * cm))
         story.append(
             Paragraph(
@@ -268,6 +314,35 @@ def build_report_pdf(
             )
         )
         story.append(Spacer(1, 0.4 * cm))
+
+    story.append(_section_title("AI-assisted impression"))
+    if class_stats:
+        story.append(
+            Paragraph(
+                "Automated multi-class segmentation is present and quantitative region volumes are "
+                "reported above. The result is preliminary and requires review by a qualified "
+                "radiologist or clinician in conjunction with the full MRI examination and clinical context.",
+                _STYLES["Normal"],
+            )
+        )
+    else:
+        story.append(
+            Paragraph(
+                "No automated segmentation result is available for this examination.", _STYLES["Normal"]
+            )
+        )
+    story.append(Spacer(1, 0.4 * cm))
+
+    story.append(_section_title("Recommended review"))
+    story.append(
+        Paragraph(
+            "Review the segmentation overlay in all three orthogonal planes; verify label boundaries, "
+            "image registration, and volume plausibility; and correlate with prior studies and the "
+            "patient's clinical presentation when available.",
+            _STYLES["Normal"],
+        )
+    )
+    story.append(Spacer(1, 0.4 * cm))
 
     if slice_images:
         story.append(PageBreak())
@@ -332,15 +407,20 @@ def build_report_pdf(
         story.append(dice_table)
     story.append(Spacer(1, 0.4 * cm))
 
-    story.append(_section_title("Disclaimer"))
+    # Do not split a safety disclaimer across pages: it must remain readable as one statement.
     story.append(
-        Paragraph(
-            "NeuroScan AI is a local, assistive research and visualization tool. The segmentation "
-            "and measurements in this report are generated automatically by a machine learning "
-            "model and have not been reviewed by a radiologist or clinician. This report is not a "
-            "medical diagnosis and must not be used as a substitute for professional clinical "
-            "evaluation. All clinical decisions should be made by a qualified healthcare provider.",
-            _STYLES["Normal"],
+        KeepTogether(
+            [
+                _section_title("Disclaimer"),
+                Paragraph(
+                    "NeuroScan AI is a local, assistive research and visualization tool. The segmentation "
+                    "and measurements in this report are generated automatically by a machine learning "
+                    "model and have not been reviewed by a radiologist or clinician. This report is not a "
+                    "medical diagnosis and must not be used as a substitute for professional clinical "
+                    "evaluation. All clinical decisions should be made by a qualified healthcare provider.",
+                    _STYLES["Normal"],
+                ),
+            ]
         )
     )
 

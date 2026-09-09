@@ -49,7 +49,9 @@ class _ModelHolder:
 
         self._device = "cuda" if torch.cuda.is_available() else "cpu"
         model = UNet3D(in_channels=len(MODALITIES), out_channels=3)
-        state_dict = torch.load(CHECKPOINT_PATH, map_location=self._device)
+        # Model artifacts are external inputs. Restrict deserialization to tensor
+        # weights instead of allowing arbitrary Python objects embedded in a pickle.
+        state_dict = torch.load(CHECKPOINT_PATH, map_location=self._device, weights_only=True)
         # Support both a raw state_dict and a training-script checkpoint dict with a
         # "model_state_dict" key (see training/train_brats.py's save step).
         if isinstance(state_dict, dict) and "model_state_dict" in state_dict:
@@ -82,7 +84,6 @@ def run_inference(case_id: str) -> dict:
 
     volumes = {}
     reference_affine: Optional[np.ndarray] = None
-    reference_header = None
     voxel_volume_mm3 = 1.0
     for modality in MODALITIES:
         path = raw_dir / f"{modality}.nii.gz"
@@ -90,9 +91,13 @@ def run_inference(case_id: str) -> dict:
             continue
         vol = load_nifti(path)
         volumes[modality] = vol
+        # Migrate cases uploaded before header canonicalization. This safely replaces
+        # vendor-extension-heavy NIfTI headers with the same spatial data and affine.
+        clean_volume = nib.Nifti1Image(vol.data.astype(np.float32), affine=vol.affine)
+        clean_volume.set_data_dtype(np.float32)
+        nib.save(clean_volume, str(path))
         if modality in ("t1ce", "t1"):  # prefer t1ce as the anatomical reference if present
             reference_affine = vol.affine
-            reference_header = vol.header
             voxel_volume_mm3 = vol.voxel_volume_mm3
 
     missing = [m for m in MODALITIES if m not in volumes]
@@ -100,7 +105,7 @@ def run_inference(case_id: str) -> dict:
         raise ValueError(f"Cannot run segmentation: missing modalities {missing}")
     if reference_affine is None:
         first = next(iter(volumes.values()))
-        reference_affine, reference_header, voxel_volume_mm3 = first.affine, first.header, first.voxel_volume_mm3
+        reference_affine, voxel_volume_mm3 = first.affine, first.voxel_volume_mm3
 
     original_shape = next(iter(volumes.values())).data.shape
 
@@ -130,7 +135,12 @@ def run_inference(case_id: str) -> dict:
         )
         label_map = probs_to_labelmap(probs_full)
 
-    seg_img = nib.Nifti1Image(label_map, affine=reference_affine, header=reference_header)
+    # Do not reuse the source MRI header for a label map. Some source files carry a
+    # non-standard voxel offset and extension layout that is valid for the MRI but causes
+    # browser NIfTI parsers (including NiiVue) to misread a generated segmentation payload.
+    # Retain spatial alignment through the affine and write a clean uint8 label header.
+    seg_img = nib.Nifti1Image(label_map.astype(np.uint8), affine=reference_affine)
+    seg_img.set_data_dtype(np.uint8)
     nib.save(seg_img, str(case_dir / "segmentation.nii.gz"))
 
     class_stats = compute_class_stats(label_map, voxel_volume_mm3)

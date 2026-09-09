@@ -20,7 +20,7 @@ export function UploadDropzone() {
   const onDrop = useCallback((accepted: File[], rejected: FileRejection[]) => {
     setError(null);
     if (rejected.length > 0) {
-      setError("Only .nii.gz, .nii, and .zip files are accepted.");
+          setError("Use .nii, .nii.gz, or one .zip containing NIfTI or DICOM series.");
     }
     setFiles((prev) => {
       const merged = [...prev, ...accepted];
@@ -55,6 +55,14 @@ export function UploadDropzone() {
     files.length > 0 &&
     !submitting &&
     (containsZip || MODALITIES.every((m) => detected.has(m)));
+
+  const submitHint = caseName.trim().length === 0
+    ? "Enter a case name above to enable upload."
+    : !containsZip && !MODALITIES.every((m) => detected.has(m))
+      ? "Add all four MRI modalities to enable upload."
+      : canSubmit
+        ? "Ready to upload and analyze this case."
+        : "Preparing upload…";
 
   function removeFile(name: string) {
     setFiles((prev) => prev.filter((f) => f.name !== name));
@@ -91,17 +99,17 @@ export function UploadDropzone() {
       <div
         {...getRootProps()}
         className={cn(
-          "rounded-lg border-2 border-dashed p-10 text-center cursor-pointer transition-colors",
+          "rounded-xl border-2 border-dashed p-8 text-center cursor-pointer transition-colors sm:p-12",
           isDragActive ? "border-primary bg-primary/5" : "border-border-strong hover:border-primary/50 hover:bg-card"
         )}
       >
-        <input {...getInputProps()} aria-label="Upload NIfTI scans or a zipped case" />
+        <input {...getInputProps()} aria-label="Upload NIfTI scans or a zipped NIfTI or DICOM study" />
         <UploadCloud size={32} className="mx-auto text-primary" aria-hidden="true" />
-        <p className="mt-3 text-sm font-medium text-text">
+        <p className="mt-3 text-base font-semibold text-text">
           {isDragActive ? "Drop the files here" : "Drag & drop scans, or click to browse"}
         </p>
         <p className="mt-1 text-xs text-text-muted">
-          Accepts individual T1 / T1-CE / T2 / FLAIR .nii.gz files, or a single .zip case folder
+          Accepts individual T1 / T1-CE / T2 / FLAIR NIfTI files, or one ZIP with NIfTI files or DICOM series named T1, T1CE, T2 and FLAIR
         </p>
       </div>
 
@@ -113,7 +121,7 @@ export function UploadDropzone() {
 
       {!containsZip && (
         <div className="rounded-lg border border-border bg-surface p-4">
-          <p className="text-sm font-medium text-text mb-3">Required modalities</p>
+          <div className="mb-3 flex items-center justify-between gap-3"><p className="text-sm font-semibold text-text">Required modalities</p><p className="text-xs text-text-muted">All four are needed to start</p></div>
           <ul className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             {MODALITIES.map((m) => {
               const found = detected.has(m);
@@ -162,6 +170,12 @@ export function UploadDropzone() {
       <Button onClick={handleSubmit} disabled={!canSubmit} loading={submitting} size="lg" className="w-full sm:w-auto">
         {submitting ? "Uploading…" : "Upload case"}
       </Button>
+      <p
+        className={cn("text-sm", canSubmit ? "text-success" : "text-text-muted")}
+        aria-live="polite"
+      >
+        {submitHint}
+      </p>
     </div>
   );
 }

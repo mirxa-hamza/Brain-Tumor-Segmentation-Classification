@@ -1,5 +1,5 @@
 import { Brain, Database, Layers3, ScanEye } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/Card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 
 export const metadata = { title: "About — NeuroScan AI" };
 
@@ -59,7 +59,7 @@ export default function AboutPage() {
             A 3D U-Net takes all four modalities stacked as input channels and predicts three
             output channels — one per tumor sub-region — using a sigmoid activation so regions can
             overlap (an enhancing-tumor voxel is also part of the tumor core, which is also part
-            of the whole tumor). Training happens on Kaggle's free GPU notebooks using the script
+            of the whole tumor). Training happens on Kaggle GPU notebooks using the script
             in <code className="mono-numeric">training/train_brats.py</code>; the resulting
             checkpoint is copied to this machine and loaded by the local FastAPI backend.
           </p>
@@ -91,8 +91,7 @@ export default function AboutPage() {
       </Card>
 
       <div className="flex items-center gap-2 text-xs text-text-muted pt-2">
-        
-        <span>Runs 100% locally — no data leaves this machine.</span>
+        <span>Runs locally — data is not sent to a cloud service. Research and visualization use only; not for clinical diagnosis or treatment decisions.</span>
       </div>
     </div>
   );

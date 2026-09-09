@@ -31,6 +31,19 @@ Open **http://localhost:3000**. The app works immediately in **demo mode** (synt
 segmentation masks) — you don't need a trained model to try the full upload → predict → view
 flow.
 
+> **Research use only:** NeuroScan AI is a local visualization and ML-development project. It is
+> not a medical device and must not be used for diagnosis, treatment, or clinical decisions.
+
+## Upload safety and DICOM
+
+The app accepts four NIfTI files or one ZIP study. ZIP uploads are checked for unsafe paths,
+excessive file counts, expansion size, and suspicious compression ratios. The default total upload
+limit is 2 GB; local operators can adjust it with `NEUROSCAN_MAX_UPLOAD_BYTES`.
+
+For DICOM, upload one ZIP containing four series whose DICOM **Series Description**, **Protocol
+Name**, or folder name identifies `T1`, `T1CE`, `T2`, and `FLAIR`. The backend converts those
+series to temporary NIfTI files and does not retain the source DICOM metadata after import.
+
 ## Bringing in your trained model
 
 1. Train on Kaggle with `training/train_brats.py` against the unzipped BraTS 2021 dataset.

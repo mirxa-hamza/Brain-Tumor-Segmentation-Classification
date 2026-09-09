@@ -8,10 +8,9 @@ export function DemoModeBanner({ className }: { className?: string }) {
     >
       <FlaskConical size={18} className="shrink-0 mt-0.5" aria-hidden="true" />
       <div>
-        <p className="font-medium">Demo mode — no trained model loaded yet</p>
+        <p className="font-medium">Demonstration output — not for clinical use</p>
         <p className="text-warning/80 mt-0.5">
-          This segmentation is a synthetic placeholder so you can test the full workflow before
-          training finishes. Drop your trained checkpoint into{" "}
+          This segmentation is synthetic and does not represent the uploaded scan. It exists only to test the workflow before training finishes. Drop your trained checkpoint into{" "}
           <code className="mono-numeric bg-warning/10 px-1 py-0.5 rounded">
             backend/models_store/model.pt
           </code>{" "}

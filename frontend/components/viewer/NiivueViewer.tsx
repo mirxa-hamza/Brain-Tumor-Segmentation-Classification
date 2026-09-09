@@ -133,7 +133,6 @@ export function NiivueViewer({
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Reload volumes whenever the background modality or overlay visibility changes.
@@ -149,9 +148,9 @@ export function NiivueViewer({
       // the file extension. Ensure both are non-empty strings before proceeding.
       if (!backgroundUrl) return;
       const safeUrl = String(backgroundUrl);
-      // NiiVue's getFileExt() is called on `name || url`. If name has no dot
-      // the regex returns undefined and .toUpperCase() crashes. Ensure name
-      // always ends in .nii.gz so NiiVue can detect the type correctly.
+      // NiiVue's getFileExt() is called on `name || url`. The endpoint URL is
+      // deliberately extensionless so download managers do not hijack viewer
+      // requests; this explicit name preserves gzip/NIfTI format detection.
       const ensureNiiGz = (s: string) =>
         s.endsWith(".nii.gz") || s.endsWith(".nii") ? s : `${s}.nii.gz`;
       const safeName = ensureNiiGz(String(backgroundName || "scan"));

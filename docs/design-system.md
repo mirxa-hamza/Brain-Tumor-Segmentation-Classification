@@ -1,31 +1,31 @@
 # Design System — NeuroScan AI
 
-Generated with the `ui-ux-pro-max` skill (product: AI/technical dashboard tool, dark mode,
-density 8/10) and adapted with a medical-teal accent so the app reads as clinical/technical
-rather than a generic dark developer tool or a light patient-facing healthcare site.
+Designed for a local clinical-research workspace: a high-clarity, light interface with blue
+clinical accents, clear protocol steps, and restrained motion. It is intentionally not presented
+as a patient-facing diagnostic product.
 
 ## Palette
 
 | Token | Hex | Use |
 |---|---|---|
-| `--bg` | `#0A0F1A` | App background |
-| `--surface` | `#0F172A` | Section/panel background |
-| `--card` | `#141B2D` | Card background |
-| `--border` | `#263149` | Default borders |
-| `--border-strong` | `#334155` | Emphasized borders / dividers |
-| `--text` | `#F8FAFC` | Primary text |
-| `--text-muted` | `#94A3B8` | Secondary text |
-| `--primary` | `#0891B2` | Primary actions, links, active nav |
-| `--primary-glow` | `#22D3EE` | Hover/glow accents, focus highlight |
-| `--success` | `#22C55E` | Healthy status, checkpoint loaded |
-| `--warning` | `#F59E0B` | Demo-mode banner, caution states |
-| `--destructive` | `#EF4444` | Errors, destructive actions |
+| `--bg` | `#F5F9FC` | App background |
+| `--surface` | `#EDF5F9` | Section/panel background |
+| `--card` | `#FFFFFF` | Card background |
+| `--border` | `#D7E3EA` | Default borders |
+| `--border-strong` | `#B9CCD7` | Emphasized borders / dividers |
+| `--text` | `#102A43` | Primary text |
+| `--text-muted` | `#526A7A` | Secondary text |
+| `--primary` | `#006DA6` | Primary actions, links, active nav |
+| `--primary-glow` | `#27A7D8` | Hover and focus highlight |
+| `--success` | `#087C5B` | Healthy status, checkpoint loaded |
+| `--warning` | `#A65A00` | Demo-mode banner, caution states |
+| `--destructive` | `#BD2C2C` | Errors, destructive actions |
 
 ### Segmentation class colors (fixed, used everywhere — legend, overlay, charts)
 
 | Class | Hex | Meaning |
 |---|---|---|
-| NCR/NET | `#F97316` | Necrotic / non-enhancing tumor core |
+| NCR/NET | `#0EA5E9` | Necrotic / non-enhancing tumor core |
 | ED | `#FACC15` | Peritumoral edema |
 | ET | `#EF4444` | Enhancing tumor |
 
@@ -34,15 +34,14 @@ always paired with a text label (legend, tooltip, or badge) — never color alon
 
 ## Typography
 
-- **UI text:** IBM Plex Sans (300/400/500/600/700)
-- **Numeric / technical:** JetBrains Mono — case IDs, file names, voxel counts, Dice scores,
-  volumes (cm³), timestamps
+- **UI text:** system UI stack (`Inter`, Segoe UI, system-ui) for an offline-capable local build.
+- **Numeric / technical:** system monospace stack — case IDs, file names, voxel counts, Dice scores,
+  volumes (cm³), timestamps.
 - Base size 16px, line-height 1.5, headings use IBM Plex Sans 600/700.
 
 ## Motion
 
-`framer-motion`, subtle (200–400ms), used for: page/section reveal on mount, card hover lift,
-modal/toast enter-exit, upload progress. All motion is skipped when
+CSS transitions and a short page reveal (200–400ms) are used for cards and workflow states. All motion is skipped when
 `prefers-reduced-motion: reduce` is set (see `frontend/lib/motion.ts`).
 
 ## Icons

@@ -44,14 +44,17 @@ def get_volume(case_id: str, modality: str) -> FileResponse:
     # frontend appends .nii.gz to the URL. Strip it before looking up the file.
     modality = modality.removesuffix(".nii.gz").removesuffix(".nii")
     path = case_store.volume_path(case_id, modality)
-    return FileResponse(path, media_type="application/gzip", filename=f"{modality}.nii.gz")
+    # No Content-Disposition attachment: NiiVue fetches this endpoint to render the volume.
+    return FileResponse(path, media_type="application/gzip")
 
 
 @router.get("/api/cases/{case_id}/segmentation")
 @router.get("/api/cases/{case_id}/segmentation.nii.gz")
 def get_segmentation(case_id: str) -> FileResponse:
     path = case_store.segmentation_path(case_id)
-    return FileResponse(path, media_type="application/gzip", filename="segmentation.nii.gz")
+    # The explicit download control in the frontend handles saving; this endpoint is also
+    # consumed directly by the in-browser viewer.
+    return FileResponse(path, media_type="application/gzip")
 
 
 @router.post("/api/cases/{case_id}/predict", response_model=PredictionResult)

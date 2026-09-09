@@ -9,7 +9,7 @@ export default function NotFound() {
       </span>
       <h2 className="text-lg font-semibold text-text">Page not found</h2>
       <p className="text-sm text-text-muted max-w-md">
-        The page you're looking for doesn't exist, or the case may have been deleted.
+        The page you&apos;re looking for doesn&apos;t exist, or the case may have been deleted.
       </p>
       <ButtonLink href="/">Back to dashboard</ButtonLink>
     </div>

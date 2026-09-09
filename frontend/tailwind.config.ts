@@ -32,10 +32,10 @@ const config: Config = {
         },
       },
       fontFamily: {
-        // "Google Sans" has no public webfont release; Roboto is the closest open
-        // relative and is used for all UI text, including numeric/tabular data.
-        sans: ["var(--font-sans)", "Roboto", "system-ui", "sans-serif"],
-        mono: ["var(--font-sans)", "Roboto", "system-ui", "sans-serif"],
+        // System fonts keep the local application fully usable without a network
+        // request during build or at first render.
+        sans: ["Inter", "Segoe UI", "system-ui", "sans-serif"],
+        mono: ["ui-monospace", "SFMono-Regular", "Consolas", "monospace"],
       },
       borderRadius: {
         sm: "6px",
@@ -44,8 +44,8 @@ const config: Config = {
         xl: "20px",
       },
       boxShadow: {
-        glow: "0 0 0 1px var(--primary), 0 0 24px -4px var(--primary-glow)",
-        card: "0 1px 2px 0 rgb(0 0 0 / 0.4), 0 0 0 1px var(--border)",
+        glow: "0 8px 24px -10px rgb(0 109 166 / 0.55)",
+        card: "0 1px 2px 0 rgb(16 42 67 / 0.04), 0 10px 28px -20px rgb(16 42 67 / 0.22)",
       },
       keyframes: {
         "fade-in": {

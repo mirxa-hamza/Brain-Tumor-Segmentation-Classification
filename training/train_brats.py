@@ -72,7 +72,7 @@ MODALITIES = ["t1", "t1ce", "t2", "flair"]
 CLASS_LABEL_VALUES = [1, 2, 4]
 CLASS_NAMES = ["Necrotic Core (NCR/NET)", "Edema (ED)", "Enhancing Tumor (ET)"]
 CLASS_KEYS = ["ncr", "ed", "et"]
-CLASS_COLORS = ["#F97316", "#FACC15", "#EF4444"]
+CLASS_COLORS = ["#0EA5E9", "#FACC15", "#EF4444"]
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 

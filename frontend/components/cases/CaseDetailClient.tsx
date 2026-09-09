@@ -84,37 +84,22 @@ export function CaseDetailClient({ caseId }: { caseId: string }) {
     );
   };
 
-  async function handleDownloadReport() {
+  function handleDownloadReport() {
     if (!caseDetail) return;
     setGeneratingPdf(true);
     setPdfError(null);
-    try {
-      const blob = await api.downloadReport(caseId);
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `NeuroScan-Report-${caseDetail.case_id}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      URL.revokeObjectURL(url);
-    } catch (err) {
-      // Some environments (security software, certain browser configs) block the in-page
-      // fetch() for this endpoint even though the backend is reachable and a direct browser
-      // navigation to the same URL works fine — fall back to opening it directly rather than
-      // showing an error for something that isn't actually broken.
-      console.error("In-page PDF fetch failed, falling back to direct download:", err);
-      const opened = window.open(api.reportUrl(caseId), "_blank");
-      if (!opened) {
-        setPdfError(
-          err instanceof ApiRequestError
-            ? err.message
-            : "Unable to generate the report. Please try again."
-        );
-      }
-    } finally {
-      setGeneratingPdf(false);
-    }
+
+    // Do not fetch the PDF into JavaScript. Browser extensions can alter a fetch response,
+    // then cause a false validation failure and an unwanted about:blank fallback tab. A normal
+    // same-page link lets the browser handle the attachment response directly.
+    const link = document.createElement("a");
+    link.href = api.reportUrl(caseId);
+    link.download = `NeuroScan-Report-${caseDetail.case_id}.pdf`;
+    link.style.display = "none";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => setGeneratingPdf(false), 250);
   }
 
   if (error && !caseDetail) {
@@ -169,7 +154,7 @@ export function CaseDetailClient({ caseId }: { caseId: string }) {
           {segmentationUrl && (
             <a
               href={segmentationUrl}
-              download
+              download="segmentation.nii.gz"
               className="inline-flex items-center gap-2 h-11 px-4 rounded-md text-sm font-medium bg-card text-text border border-border-strong hover:border-primary/40"
             >
               <Download size={16} aria-hidden="true" /> Download mask

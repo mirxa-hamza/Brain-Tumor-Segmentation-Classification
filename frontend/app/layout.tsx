@@ -1,19 +1,8 @@
 import type { Metadata } from "next";
-import { Roboto } from "next/font/google";
 import "./globals.css";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { AppLoadingScreen } from "@/components/layout/AppLoadingScreen";
-
-// "Google Sans" isn't published on Google Fonts (no open webfont license), so
-// Roboto — Google's own open-source UI typeface and the closest public relative
-// of Google Sans's forms — is used throughout as the documented substitute.
-const roboto = Roboto({
-  subsets: ["latin"],
-  weight: ["300", "400", "500", "700", "900"],
-  variable: "--font-sans",
-  display: "swap",
-});
 
 export const metadata: Metadata = {
   title: "NeuroScan AI — Brain Tumor Segmentation",
@@ -23,8 +12,10 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={roboto.variable}>
-      <body className="min-h-screen flex flex-col font-sans antialiased">
+    <html lang="en">
+      {/* Some browser extensions add bookkeeping attributes to <body> before React hydrates.
+          Limit suppression to this extension-prone root node; child markup still reports real mismatches. */}
+      <body suppressHydrationWarning className="min-h-screen flex flex-col font-sans antialiased">
         <AppLoadingScreen />
         <a
           href="#main-content"

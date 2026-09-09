@@ -3,21 +3,21 @@
 @tailwind utilities;
 
 :root {
-  --bg: #0a0f1a;
-  --surface: #0f172a;
-  --card: #141b2d;
-  --border: #263149;
-  --border-strong: #334155;
-  --text: #f8fafc;
-  --text-muted: #94a3b8;
+  --bg: #f5f9fc;
+  --surface: #edf5f9;
+  --card: #ffffff;
+  --border: #d7e3ea;
+  --border-strong: #b9ccd7;
+  --text: #102a43;
+  --text-muted: #526a7a;
 
-  --primary: #0891b2;
-  --primary-glow: #22d3ee;
-  --primary-foreground: #f8fafc;
+  --primary: #006da6;
+  --primary-glow: #27a7d8;
+  --primary-foreground: #ffffff;
 
-  --success: #22c55e;
-  --warning: #f59e0b;
-  --destructive: #ef4444;
+  --success: #087c5b;
+  --warning: #a65a00;
+  --destructive: #bd2c2c;
 
   /* Fixed segmentation class colors — never change meaning across the app */
   --tumor-ncr: #0ea5e9; /* necrotic / non-enhancing tumor core (blue) */
@@ -30,11 +30,13 @@
 }
 
 html {
-  color-scheme: dark;
+  color-scheme: light;
+  scroll-padding-top: 5rem;
 }
 
 body {
   background-color: var(--bg);
+  background-image: linear-gradient(to bottom, rgb(255 255 255 / 0.72), transparent 20rem);
   color: var(--text);
   font-feature-settings: "cv02", "cv03", "cv04", "cv11";
 }
@@ -56,7 +58,7 @@ body {
   height: 10px;
 }
 ::-webkit-scrollbar-track {
-  background: var(--surface);
+  background: var(--bg);
 }
 ::-webkit-scrollbar-thumb {
   background: var(--border-strong);
@@ -64,6 +66,12 @@ body {
 }
 ::-webkit-scrollbar-thumb:hover {
   background: var(--text-muted);
+}
+
+.clinical-grid {
+  background-image: linear-gradient(rgb(0 109 166 / 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(0 109 166 / 0.045) 1px, transparent 1px);
+  background-size: 28px 28px;
 }
 
 .mono-numeric {

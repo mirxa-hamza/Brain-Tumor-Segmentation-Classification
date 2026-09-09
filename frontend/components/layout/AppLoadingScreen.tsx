@@ -16,7 +16,8 @@ export function AppLoadingScreen() {
   const reducedMotion = useReducedMotion();
 
   useEffect(() => {
-    setMounted(true);
+    const frame = requestAnimationFrame(() => setMounted(true));
+    return () => cancelAnimationFrame(frame);
   }, []);
 
   // Unmount outright rather than toggling a `hidden` attribute: this element also carries

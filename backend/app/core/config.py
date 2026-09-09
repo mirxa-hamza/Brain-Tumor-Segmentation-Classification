@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 # All paths are anchored relative to this file so the backend works regardless of the
@@ -28,6 +29,13 @@ CORS_ORIGINS = [
 ]
 
 APP_VERSION = "0.1.0"
+
+# Local research safeguards. They are deliberately configurable for legitimate large studies,
+# while preventing accidental disk exhaustion and ZIP-bomb uploads by default.
+MAX_UPLOAD_BYTES = int(os.getenv("NEUROSCAN_MAX_UPLOAD_BYTES", 2 * 1024 * 1024 * 1024))
+MAX_ZIP_FILES = int(os.getenv("NEUROSCAN_MAX_ZIP_FILES", 10_000))
+MAX_ZIP_UNCOMPRESSED_BYTES = int(os.getenv("NEUROSCAN_MAX_ZIP_UNCOMPRESSED_BYTES", 4 * 1024 * 1024 * 1024))
+MAX_ZIP_COMPRESSION_RATIO = float(os.getenv("NEUROSCAN_MAX_ZIP_COMPRESSION_RATIO", "100"))
 
 for d in (DATA_DIR, CASES_DIR, MODELS_STORE_DIR):
     d.mkdir(parents=True, exist_ok=True)

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 
 /**
  * Tracks `prefers-reduced-motion`. All CSS animation classes in this app (see
@@ -8,15 +8,13 @@ import { useEffect, useState } from "react";
  * staggered reveal delay).
  */
 export function useReducedMotion(): boolean {
-  const [reduced, setReduced] = useState(false);
-
-  useEffect(() => {
+  return useSyncExternalStore(
+    (notify) => {
     const mql = window.matchMedia("(prefers-reduced-motion: reduce)");
-    setReduced(mql.matches);
-    const handler = (e: MediaQueryListEvent) => setReduced(e.matches);
-    mql.addEventListener("change", handler);
-    return () => mql.removeEventListener("change", handler);
-  }, []);
-
-  return reduced;
+      mql.addEventListener("change", notify);
+      return () => mql.removeEventListener("change", notify);
+    },
+    () => window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+    () => false
+  );
 }
