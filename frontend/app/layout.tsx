@@ -7,7 +7,8 @@ import { AppLoadingScreen } from "@/components/layout/AppLoadingScreen";
 export const metadata: Metadata = {
   title: "NeuroScan AI — Brain Tumor Segmentation",
   description:
-    "Local brain tumor segmentation viewer for the BraTS 2021 Task 1 dataset, by Hamza Mustafa.",
+    "Local brain tumor segmentation viewer for the BraTS 2021 Task 1 dataset, by Hamza Mustafa and Wajid Ali, supervised by Ms. Saira Ishtiaq.",
+  authors: [{ name: "Hamza Mustafa" }, { name: "Wajid Ali" }],
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

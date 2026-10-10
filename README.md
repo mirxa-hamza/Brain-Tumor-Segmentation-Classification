@@ -19,6 +19,11 @@ npm run dev
 This starts the FastAPI backend and Next.js frontend together. Open
 `http://localhost:3000`, and press `Ctrl+C` once to stop both services.
 
+The frontend development command uses Webpack (`next dev --webpack`). This
+avoids the false dashboard/upload 404 responses observed with the local
+Turbopack development output. After changing the development script, restart
+the server so the new bundler takes effect.
+
 ### One-time setup
 
 **Backend** (Python 3.10+):

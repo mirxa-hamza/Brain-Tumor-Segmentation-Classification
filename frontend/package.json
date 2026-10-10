@@ -5,7 +5,7 @@
   "author": "Hamza Mustafa",
   "description": "NeuroScan AI - brain tumor segmentation viewer (BraTS 2021 Task 1)",
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --webpack",
     "build": "next build",
     "start": "next start",
     "lint": "eslint ."

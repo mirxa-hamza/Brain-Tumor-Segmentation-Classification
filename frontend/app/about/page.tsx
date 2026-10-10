@@ -14,7 +14,8 @@ export default function AboutPage() {
         <p className="mt-3 text-sm text-text-muted leading-relaxed">
           NeuroScan AI is a local, single-user tool for exploring automated brain tumor
           segmentation on multi-modal MRI. It was built by <strong className="text-text">Hamza
-          Mustafa</strong> as an end-to-end project spanning dataset preparation, model training,
+          Mustafa and Wajid Ali</strong> as equal contributors, under the supervision of{" "}
+          <strong className="text-text">Ms. Saira Ishtiaq</strong>, as an end-to-end project spanning dataset preparation, model training,
           and an interactive viewer — with training run on Kaggle GPUs and everything else
           running entirely on the local machine.
         </p>
