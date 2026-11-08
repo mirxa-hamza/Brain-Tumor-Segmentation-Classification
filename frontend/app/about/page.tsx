@@ -58,9 +58,9 @@ export default function AboutPage() {
         <CardContent className="text-sm text-text-muted leading-relaxed space-y-2">
           <p>
             A 3D U-Net takes all four modalities stacked as input channels and predicts three
-            output channels — one per tumor sub-region — using a sigmoid activation so regions can
-            overlap (an enhancing-tumor voxel is also part of the tumor core, which is also part
-            of the whole tumor). Training happens on Kaggle GPU notebooks using the script
+            output channels for NCR, edema and enhancing tumor. Sigmoid scores are converted to
+            one winning label per voxel; whole tumor and tumor core are derived unions, not
+            separate model channels. Training happens on Kaggle GPU notebooks using the script
             in <code className="mono-numeric">training/train_brats.py</code>; the resulting
             checkpoint is copied to this machine and loaded by the local FastAPI backend.
           </p>
@@ -91,6 +91,10 @@ export default function AboutPage() {
         </CardContent>
       </Card>
 
+      <section id="asset-credits" className="glass-panel p-6 text-sm leading-7 text-text-muted">
+        <h2 className="mb-3 font-semibold text-text">3D anatomy credits</h2>
+        <p>The landing-page brain is an anatomical illustration, not a patient scan or a segmentation result. Model by Z-Anatomy contributors and BodyParts3D / DBCLS, distributed through <a className="text-primary underline" href="https://github.com/itayinbarr/brainproject" target="_blank" rel="noreferrer">Brain Project</a> under <a className="text-primary underline" href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noreferrer">CC BY-SA 4.0</a>. NeuroScan changes display materials and shows selected exterior structures; the bundled model is unmodified.</p>
+      </section>
       <div className="flex items-center gap-2 text-xs text-text-muted pt-2">
         <span>Runs locally — data is not sent to a cloud service. Research and visualization use only; not for clinical diagnosis or treatment decisions.</span>
       </div>
